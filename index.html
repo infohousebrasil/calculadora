@@ -1,10 +1,9 @@
-
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Calculadora de Taxas Shopee</title>
+  <title>Calculadora de Precificação Shopee</title>
   <style>
     * {
       box-sizing: border-box;
@@ -25,7 +24,7 @@
       border-radius: 12px;
       padding: 24px;
       width: 100%;
-      max-width: 480px;
+      max-width: 500px;
       box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
     }
     h2 {
@@ -71,31 +70,38 @@
       margin-bottom: 10px;
       font-size: 0.95rem;
     }
-    .result-row:last-child {
-      margin-bottom: 0;
-      padding-top: 10px;
+    .result-row.highlight {
+      margin-top: 15px;
+      padding-top: 12px;
       border-top: 1px dashed #414868;
       font-weight: bold;
-      color: #73daca;
-      font-size: 1.1rem;
+      color: #9ece6a;
+      font-size: 1.2rem;
     }
     .value {
       color: #bb9af7;
       font-weight: 600;
+    }
+    .highlight .value {
+      color: #9ece6a;
     }
   </style>
 </head>
 <body>
 
 <div class="card">
-  <h2>Calculadora de Taxas Shopee</h2>
+  <h2>Calculadora de Precificação Shopee</h2>
   
   <div class="form-group">
-    <label for="preco">Preço do Produto (R$)</label>
-    <input type="number" id="preco" step="0.01" placeholder="Ex: 85.00" oninput="calcularCustos()">
+    <label for="custoDesejado">Quanto você quer receber no bolso (R$)</label>
+    <input type="number" id="custoDesejado" step="0.01" placeholder="Ex: 50.00" oninput="calcularPrecoVenda()">
   </div>
 
   <div class="results">
+    <div class="result-row">
+      <span>Faixa Encontrada</span>
+      <span class="value" id="faixaFaixa">-</span>
+    </div>
     <div class="result-row">
       <span>Comissão (<span id="pctComissao">0</span>%)</span>
       <span class="value" id="valComissao">R$ 0,00</span>
@@ -105,55 +111,73 @@
       <span class="value" id="valTaxaFixa">R$ 0,00</span>
     </div>
     <div class="result-row">
-      <span>Custo Total de Taxas</span>
-      <span class="value" id="valCustoTotal">R$ 0,00</span>
+      <span>Total em Taxas</span>
+      <span class="value" id="valTotalTaxas">R$ 0,00</span>
     </div>
-    <div class="result-row">
-      <span>Valor Líquido a Receber</span>
-      <span id="valLiquido">R$ 0,00</span>
+    <div class="result-row highlight">
+      <span>Preço de Venda Sugerido</span>
+      <span class="value" id="valPrecoVenda">R$ 0,00</span>
     </div>
   </div>
 </div>
 
 <script>
-  function calcularCustos() {
-    const preco = parseFloat(document.getElementById('preco').value) || 0;
-    let comissaoPct = 0;
-    let taxaFixa = 0;
+  function calcularPrecoVenda() {
+    const valorDesejado = parseFloat(document.getElementById('custoDesejado').value) || 0;
 
-    if (preco > 0) {
-      // Regras de taxa da tabela
-      if (preco <= 79.99) {
-        comissaoPct = 20;
-        taxaFixa = 4.50;
-      } else if (preco <= 99.99) {
-        comissaoPct = 14;
-        taxaFixa = 16.00;
-      } else if (preco <= 199.99) {
-        comissaoPct = 14;
-        taxaFixa = 20.00;
-      } else {
-        comissaoPct = 14;
-        taxaFixa = 26.00;
+    if (valorDesejado <= 0) {
+      limparCampos();
+      return;
+    }
+
+    // Regras da tabela de taxas (2026):
+    // Faixa 1: Preço <= 79.99 (Comissão: 20%, Taxa Fixa: R$ 4.50)
+    // Faixa 2: Preço <= 99.99 (Comissão: 14%, Taxa Fixa: R$ 16.00)
+    // Faixa 3: Preço <= 199.99 (Comissão: 14%, Taxa Fixa: R$ 20.00)
+    // Faixa 4: Preço >= 200.00 (Comissão: 14%, Taxa Fixa: R$ 26.00)
+
+    const faixas = [
+      { maxPreco: 79.99, comissao: 0.20, fixa: 4.50, nome: "Até R$ 79,99" },
+      { maxPreco: 99.99, comissao: 0.14, fixa: 16.00, nome: "R$ 80,00 a R$ 99,99" },
+      { maxPreco: 199.99, comissao: 0.14, fixa: 20.00, nome: "R$ 100,00 a R$ 199,99" },
+      { maxPreco: Infinity, comissao: 0.14, fixa: 26.00, nome: "Acima de R$ 200,00" }
+    ];
+
+    let precoVendaEncontrado = 0;
+    let faixaSelecionada = null;
+
+    // Testa as faixas para encontrar o preço final correto que se enquadra nas regras da tabela
+    for (let f of faixas) {
+      // Fórmula: Preço = (Valor Desejado + Taxa Fixa) / (1 - Comissão)
+      let p = (valorDesejado + f.fixa) / (1 - f.comissao);
+
+      if (p <= f.maxPreco || f.maxPreco === Infinity) {
+        precoVendaEncontrado = p;
+        faixaSelecionada = f;
+        break;
       }
     }
 
-    const valorComissao = preco * (comissaoPct / 100);
-    const custoTotal = valorComissao + taxaFixa;
-    const valorLiquido = preco - custoTotal;
+    const valorComissao = precoVendaEncontrado * faixaSelecionada.comissao;
+    const totalTaxas = valorComissao + faixaSelecionada.fixa;
 
-    // Atualização da interface
-    document.getElementById('pctComissao').innerText = comissaoPct;
+    // Atualiza a tela
+    document.getElementById('faixaFaixa').innerText = faixaSelecionada.nome;
+    document.getElementById('pctComissao').innerText = (faixaSelecionada.comissao * 100).toFixed(0);
     document.getElementById('valComissao').innerText = formatarMoeda(valorComissao);
-    document.getElementById('valTaxaFixa').innerText = formatarMoeda(taxaFixa);
-    document.getElementById('valCustoTotal').innerText = formatarMoeda(custoTotal);
-    document.getElementById('valLiquido').innerText = formatarMoeda(valorLiquido > 0 ? valorLiquido : 0);
+    document.getElementById('valTaxaFixa').innerText = formatarMoeda(faixaSelecionada.fixa);
+    document.getElementById('valTotalTaxas').innerText = formatarMoeda(totalTaxas);
+    document.getElementById('valPrecoVenda').innerText = formatarMoeda(precoVendaEncontrado);
+  }
+
+  function limparCampos() {
+    document.getElementById('faixaFaixa').innerText = '-';
+    document.getElementById('pctComissao').innerText = '0';
+    document.getElementById('valComissao').innerText = 'R$ 0,00';
+    document.getElementById('valTaxaFixa').innerText = 'R$ 0,00';
+    document.getElementById('valTotalTaxas').innerText = 'R$ 0,00';
+    document.getElementById('valPrecoVenda').innerText = 'R$ 0,00';
   }
 
   function formatarMoeda(valor) {
-    return valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-  }
-</script>
-
-</body>
-</html>
+    return
