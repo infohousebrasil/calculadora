@@ -1,1 +1,159 @@
 
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Calculadora de Taxas Shopee</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+    body {
+      background-color: #1a1b26;
+      color: #a9b1d6;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      margin: 0;
+      padding: 20px;
+    }
+    .card {
+      background-color: #24283b;
+      border-radius: 12px;
+      padding: 24px;
+      width: 100%;
+      max-width: 480px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+    }
+    h2 {
+      color: #c0caf5;
+      margin-top: 0;
+      margin-bottom: 20px;
+      font-size: 1.4rem;
+      border-bottom: 1px solid #414868;
+      padding-bottom: 10px;
+    }
+    .form-group {
+      margin-bottom: 20px;
+    }
+    label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: 600;
+      color: #7aa2f7;
+    }
+    input[type="number"] {
+      width: 100%;
+      padding: 12px;
+      border: 1px solid #414868;
+      border-radius: 6px;
+      background-color: #1f2335;
+      color: #c0caf5;
+      font-size: 1rem;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    input[type="number"]:focus {
+      border-color: #7aa2f7;
+    }
+    .results {
+      background-color: #1f2335;
+      border-radius: 8px;
+      padding: 16px;
+      margin-top: 20px;
+    }
+    .result-row {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 10px;
+      font-size: 0.95rem;
+    }
+    .result-row:last-child {
+      margin-bottom: 0;
+      padding-top: 10px;
+      border-top: 1px dashed #414868;
+      font-weight: bold;
+      color: #73daca;
+      font-size: 1.1rem;
+    }
+    .value {
+      color: #bb9af7;
+      font-weight: 600;
+    }
+  </style>
+</head>
+<body>
+
+<div class="card">
+  <h2>Calculadora de Taxas Shopee</h2>
+  
+  <div class="form-group">
+    <label for="preco">Preço do Produto (R$)</label>
+    <input type="number" id="preco" step="0.01" placeholder="Ex: 85.00" oninput="calcularCustos()">
+  </div>
+
+  <div class="results">
+    <div class="result-row">
+      <span>Comissão (<span id="pctComissao">0</span>%)</span>
+      <span class="value" id="valComissao">R$ 0,00</span>
+    </div>
+    <div class="result-row">
+      <span>Taxa Fixa</span>
+      <span class="value" id="valTaxaFixa">R$ 0,00</span>
+    </div>
+    <div class="result-row">
+      <span>Custo Total de Taxas</span>
+      <span class="value" id="valCustoTotal">R$ 0,00</span>
+    </div>
+    <div class="result-row">
+      <span>Valor Líquido a Receber</span>
+      <span id="valLiquido">R$ 0,00</span>
+    </div>
+  </div>
+</div>
+
+<script>
+  function calcularCustos() {
+    const preco = parseFloat(document.getElementById('preco').value) || 0;
+    let comissaoPct = 0;
+    let taxaFixa = 0;
+
+    if (preco > 0) {
+      // Regras de taxa da tabela
+      if (preco <= 79.99) {
+        comissaoPct = 20;
+        taxaFixa = 4.50;
+      } else if (preco <= 99.99) {
+        comissaoPct = 14;
+        taxaFixa = 16.00;
+      } else if (preco <= 199.99) {
+        comissaoPct = 14;
+        taxaFixa = 20.00;
+      } else {
+        comissaoPct = 14;
+        taxaFixa = 26.00;
+      }
+    }
+
+    const valorComissao = preco * (comissaoPct / 100);
+    const custoTotal = valorComissao + taxaFixa;
+    const valorLiquido = preco - custoTotal;
+
+    // Atualização da interface
+    document.getElementById('pctComissao').innerText = comissaoPct;
+    document.getElementById('valComissao').innerText = formatarMoeda(valorComissao);
+    document.getElementById('valTaxaFixa').innerText = formatarMoeda(taxaFixa);
+    document.getElementById('valCustoTotal').innerText = formatarMoeda(custoTotal);
+    document.getElementById('valLiquido').innerText = formatarMoeda(valorLiquido > 0 ? valorLiquido : 0);
+  }
+
+  function formatarMoeda(valor) {
+    return valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+  }
+</script>
+
+</body>
+</html>
